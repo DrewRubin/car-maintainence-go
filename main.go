@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -34,35 +35,79 @@ func main() {
 	if argsWithoutProg[0] == "--add-vehicle" {
 		addVehicle()
 	} else if argsWithoutProg[0] == "--remove-vehicle" {
-
+		removeVehicle()
 	} else if argsWithoutProg[0] == "--add-record" {
 
 	} else if argsWithoutProg[0] == "--remove-record" {
 
 	} else if argsWithoutProg[0] == "--view-vehicles" {
-
+		viewVehicles()
 	} else {
 
 	}
 }
 
 func addVehicle() {
+
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Make?")
 	vehicleMake, _ := reader.ReadString('\n')
+	vehicleMake = vehicleMake[:len(vehicleMake)-1]
 	fmt.Println("Model?")
 	vehicleModel, _ := reader.ReadString('\n')
+	vehicleModel = vehicleModel[:len(vehicleModel)-1]
 	fmt.Println("Year?")
 	vehicleYear, _ := reader.ReadString('\n')
+	vehicleYear = vehicleYear[:len(vehicleYear)-1]
 	fmt.Println("Mileage?")
 	vehicleMileage, _ := reader.ReadString('\n')
+	vehicleMileage = vehicleMileage[:len(vehicleMileage)-1]
 	fmt.Println("Registration number (tag)")
 	vehicleTag, _ := reader.ReadString('\n')
+	vehicleTag = vehicleTag[:len(vehicleTag)-1]
 
-	os.Create("./vehicles.db")
+	if _, err := os.Stat("./vehicles.db"); os.IsNotExist(err) {
+		os.Create("./vehicles.db")
+	}
+
 	database, _ := sql.Open("sqlite3", "./vehicles.db")
-	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS vehicles (make TEXT, model TEXT, year TEXT, mileage TEXT, tag TEXT)")
+	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS vehicles (id INTEGER PRIMARY KEY, make TEXT, model TEXT, year INT, mileage INT, tag TEXT)")
 	statement.Exec()
 	statement, _ = database.Prepare("INSERT INTO vehicles (make, model, year, mileage, tag) VALUES (?,?,?,?,?)")
 	statement.Exec(vehicleMake, vehicleModel, vehicleYear, vehicleMileage, vehicleTag)
+	database.Close()
+}
+
+func removeVehicle() {
+	// viewVehicles()
+	// reader := bufio.NewReader(os.Stdin)
+	// fmt.Println("Which vehicle number do you want to remove?")
+	// vehicleNumber, _ := reader.ReadString('\n')
+
+}
+func viewVehicles() {
+	fmt.Println("Number:\tMake:\tModel:\tYear:\tMileage:\tTag:")
+	if _, err := os.Stat("./vehicles.db"); os.IsNotExist(err) {
+		os.Create("./vehicles.db")
+	}
+
+	database, _ := sql.Open("sqlite3", "./vehicles.db")
+
+	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS vehicles (id INTEGER PRIMARY KEY, make TEXT, model TEXT, year INT, mileage INT, tag TEXT)")
+	statement.Exec()
+
+	rows, _ := database.Query("SELECT * FROM vehicles")
+	var id int
+	var make string
+	var model string
+	var year int
+	var mileage int
+	var tag string
+	for rows.Next() {
+		rows.Scan(&id, &make, &model, &year, &mileage, &tag)
+		fmt.Println(strconv.Itoa(id) + ") " + "\t" + make + "\t" + model + "\t" + strconv.Itoa(year) + "\t" + strconv.Itoa(mileage) + "\t\t" + tag)
+
+	}
+	database.Close()
+
 }
