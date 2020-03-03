@@ -27,8 +27,9 @@ func main() {
 		fmt.Println("\t--add-record")
 		fmt.Println("\t--remove-record")
 		fmt.Println("\t--view-vehicles")
+		fmt.Println("\t--view-record")
+		return
 	}
-	fmt.Println(argsWithoutProg[0])
 
 	if numArguments > 2 {
 		fmt.Println("Too many arguments.")
@@ -187,6 +188,7 @@ func addRecord() {
 
 	fmt.Println("Description of service/repair:")
 	description, _ := reader.ReadString('\n')
+	description = description[:len(description)-1]
 
 	if _, err := os.Stat("./vehicles.db"); os.IsNotExist(err) {
 		os.Create("./vehicles.db")
