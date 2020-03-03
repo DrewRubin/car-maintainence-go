@@ -41,13 +41,22 @@ func main() {
 	} else if argsWithoutProg[0] == "--add-record" {
 		addRecord()
 	} else if argsWithoutProg[0] == "--remove-record" {
-
+		removeRecord()
 	} else if argsWithoutProg[0] == "--view-vehicles" {
 		viewVehicles()
 	} else if argsWithoutProg[0] == "--view-record" {
 		viewRecord()
 	} else {
-
+		fmt.Println("Invalid command!")
+		fmt.Println("This is a tool to keep records of your vehicle maintenance")
+		fmt.Println("Useful commands: ")
+		fmt.Println("\t--add-vehicle")
+		fmt.Println("\t--remove-vehicle")
+		fmt.Println("\t--add-record")
+		fmt.Println("\t--remove-record")
+		fmt.Println("\t--view-vehicles")
+		fmt.Println("\t--view-record")
+		return
 	}
 }
 
@@ -99,6 +108,23 @@ func removeVehicle() {
 	statement.Exec(vehicleNumber)
 	database.Close()
 
+}
+func removeRecord() {
+	viewRecord()
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Which record number would you like to delete?")
+	recordNumber, _ := reader.ReadString('\n')
+
+	if _, err := os.Stat("./vehicles.db"); os.IsNotExist(err) {
+		os.Create("./vehicles.db")
+	}
+	database, _ := sql.Open("sqlite3", "./vehicles.db")
+	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS vehicles (id INTEGER PRIMARY KEY, make TEXT, model TEXT, year INT, mileage INT, tag TEXT)")
+	statement.Exec()
+
+	statement, _ = database.Prepare("DELETE FROM records WHERE id=?")
+	statement.Exec(recordNumber)
+	database.Close()
 }
 func viewVehicles() {
 	if _, err := os.Stat("./vehicles.db"); os.IsNotExist(err) {
