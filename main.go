@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"text/tabwriter"
 
+	"github.com/rwestlund/gotex"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -28,6 +30,7 @@ func main() {
 		fmt.Println("\t--remove-record")
 		fmt.Println("\t--view-vehicles")
 		fmt.Println("\t--view-record")
+		fmt.Println("\t--make-pdf")
 		return
 	}
 
@@ -46,6 +49,8 @@ func main() {
 		viewVehicles()
 	} else if argsWithoutProg[0] == "--view-record" {
 		viewRecord()
+	} else if argsWithoutProg[0] == "--make-pdf" {
+		makePDF()
 	} else {
 		fmt.Println("Invalid command!")
 		fmt.Println("This is a tool to keep records of your vehicle maintenance")
@@ -57,6 +62,84 @@ func main() {
 		fmt.Println("\t--view-vehicles")
 		fmt.Println("\t--view-record")
 		return
+	}
+}
+func makePDF() {
+	viewVehicles()
+	fmt.Println("Which vehicle number do you want to generate a report on?")
+	reader := bufio.NewReader(os.Stdin)
+	vehicleNumber, _ := reader.ReadString('\n')
+
+	if _, err := os.Stat("./vehicles.db"); os.IsNotExist(err) {
+		os.Create("./vehicles.db")
+	}
+
+	database, _ := sql.Open("sqlite3", "./vehicles.db")
+
+	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS vehicles (id INTEGER PRIMARY KEY, make TEXT, model TEXT, year INT, mileage INT, tag TEXT)")
+	statement.Exec()
+
+	vehicleRows, _ := database.Query("SELECT id, make, model, year, mileage, tag FROM vehicles WHERE id=?", vehicleNumber)
+
+	var id int
+	var make string
+	var model string
+	var year int
+	var mileage int
+	var tag string
+
+	for vehicleRows.Next() {
+		vehicleRows.Scan(&id, &make, &model, &year, &mileage, &tag)
+	}
+
+	recordRows, _ := database.Query("SELECT * FROM records WHERE vehicleid=?", vehicleNumber)
+
+	// var entryid int
+	var date string
+	var cost int
+	var description string
+	var tableEntries string
+	var vehicleid int
+	for recordRows.Next() {
+		recordRows.Scan(&id, &vehicleid, &date, &mileage, &cost, &description)
+		tableEntries += strconv.Itoa(id) + ` & ` + date + ` & ` + strconv.Itoa(mileage) + ` & ` + strconv.Itoa(cost) + ` & ` + description + ` \\`
+	}
+	database.Close()
+
+	var document = `
+\documentclass[12pt]{article}
+\begin{document}
+
+\title{` + strconv.Itoa(year) + ` ` + make + ` ` + model + `}
+\author{car-maintenance-go}
+\maketitle
+\section{Maintenance Records}
+
+\begin{table}[!ht]
+\center
+\begin{tabular}{c|c|c|c|c}\hline
+id & date & mileage & cost & description \\\hline
+` + tableEntries + `
+\end{tabular}
+\end{table}
+\end{document}
+`
+
+	var pdf, err = gotex.Render(document, gotex.Options{
+		Command:   "/usr/bin/pdflatex",
+		Runs:      1,
+		Texinputs: ""})
+	if err != nil {
+		fmt.Println("Failed to render!")
+		fmt.Println(err)
+	} else {
+		file, err := os.Create("./" + strconv.Itoa(year) + "-" + make + "-" + model + ".pdf")
+		if err != nil {
+			fmt.Println("Failed to make pdf file!")
+		} else {
+			file.Write(pdf)
+		}
+
 	}
 }
 
