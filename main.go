@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"text/tabwriter"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -99,7 +100,7 @@ func removeVehicle() {
 
 }
 func viewVehicles() {
-	fmt.Println("Number:\tMake:\tModel:\tYear:\tMileage:\tTag:")
+	// fmt.Println("Number:\tMake:\tModel:\tYear:\tMileage:\tTag:")
 	if _, err := os.Stat("./vehicles.db"); os.IsNotExist(err) {
 		os.Create("./vehicles.db")
 	}
@@ -116,11 +117,18 @@ func viewVehicles() {
 	var year int
 	var mileage int
 	var tag string
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 2, '\t', tabwriter.Debug|tabwriter.AlignRight)
+	fmt.Fprintln(w, "Number:\tMake:\tModel:\tYear:\tMileage:\tTag:")
+
 	for rows.Next() {
 		rows.Scan(&id, &make, &model, &year, &mileage, &tag)
-		fmt.Println(strconv.Itoa(id) + ") " + "\t" + make + "\t" + model + "\t" + strconv.Itoa(year) + "\t" + strconv.Itoa(mileage) + "\t\t" + tag)
+		// fmt.Println(strconv.Itoa(id) + ") " + "\t" + make + "\t" + model + "\t" + strconv.Itoa(year) + "\t" + strconv.Itoa(mileage) + "\t\t" + tag)
+		fmt.Fprintln(w, strconv.Itoa(id)+") "+"\t"+make+"\t"+model+"\t"+strconv.Itoa(year)+"\t"+strconv.Itoa(mileage)+"\t"+tag)
 
 	}
+	fmt.Fprintln(w)
+	w.Flush()
 	database.Close()
 
 }
@@ -130,7 +138,7 @@ func viewRecord() {
 	fmt.Println("Which vehicle number do you want to view records for?")
 	reader := bufio.NewReader(os.Stdin)
 	vehicleNumber, _ := reader.ReadString('\n')
-	fmt.Println("id:\tDate:\tMileage:\tCost:\tDescription:")
+	// fmt.Println("id:\tDate:\tMileage:\tCost:\tDescription:")
 	if _, err := os.Stat("./vehicles.db"); os.IsNotExist(err) {
 		os.Create("./vehicles.db")
 	}
@@ -155,11 +163,19 @@ func viewRecord() {
 	if matchingRecords == nil {
 		return
 	}
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 2, '\t', tabwriter.Debug|tabwriter.AlignRight)
+	fmt.Fprintln(w, "id:\tDate:\tMileage:\tCost:\tDescription:")
 	for matchingRecords.Next() {
 		matchingRecords.Scan(&id, &date, &mileage, &cost, &description)
-		fmt.Println(strconv.Itoa(id) + ") " + "\t" + date + "\t" + strconv.Itoa(mileage) + "\t$" + strconv.Itoa(cost) + "\t" + description)
+
+		fmt.Fprintln(w, strconv.Itoa(id)+") "+"\t"+date+"\t"+strconv.Itoa(mileage)+"\t$"+strconv.Itoa(cost)+"\t"+description)
+
+		// fmt.Println(strconv.Itoa(id) + ") " + "\t" + date + "\t" + strconv.Itoa(mileage) + "\t$" + strconv.Itoa(cost) + "\t" + description)
 
 	}
+	fmt.Fprintln(w)
+	w.Flush()
 	database.Close()
 
 }
